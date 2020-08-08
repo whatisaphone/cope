@@ -8,3 +8,5 @@ edition = "2018"
 strict = []
 
 [dependencies]
+once_cell = "1.4.0"
+parking_lot = "0.11.0"
