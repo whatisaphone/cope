@@ -16,10 +16,10 @@ fmt:
   script:
     - cargo clippy --manifest-path "$crate_dir"/Cargo.toml --locked --all-targets --features strict
 
-check-bin:
+check-example-cli-counter:
   extends: .check-crate
   variables:
-    crate_dir: crates/bin
+    crate_dir: crates/example-cli-counter
 
 check-lib:
   extends: .check-crate
