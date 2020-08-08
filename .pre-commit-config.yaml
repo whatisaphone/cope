@@ -27,11 +27,11 @@ repos:
         entry: cargo clippy --manifest-path crates/example-cli-counter/Cargo.toml --all-targets --features strict
         pass_filenames: false
 
-      - id: check:lib
-        name: check:lib
+      - id: check:example-web-counter
+        name: check:example-web-counter
         language: system
         files: '[.]rs$'
-        entry: cargo clippy --manifest-path crates/lib/Cargo.toml --all-targets --features strict
+        entry: cargo clippy --manifest-path crates/example-web-counter/Cargo.toml --all-targets --features strict
         pass_filenames: false
 
       - id: test

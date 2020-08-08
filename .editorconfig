@@ -9,6 +9,9 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
+[*.html]
+indent_size = 2
+
 [*.{rs,toml}]
 indent_size = 4
 

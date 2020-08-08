@@ -21,10 +21,10 @@ check-example-cli-counter:
   variables:
     crate_dir: crates/example-cli-counter
 
-check-lib:
+check-example-web-counter:
   extends: .check-crate
   variables:
-    crate_dir: crates/lib
+    crate_dir: crates/example-web-counter
 
 test:
   image: rust:1.44.0
