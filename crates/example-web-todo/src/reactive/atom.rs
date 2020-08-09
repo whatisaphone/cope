@@ -66,8 +66,10 @@ impl<'a, T> Drop for AtomMut<'a, T> {
         // Drop our borrow first so the subscribers are able to borrow
         drop(self.reff.take());
 
-        for subscriber in &*self.subscribers.borrow() {
-            subscriber.borrow()();
+        for subscriber in &mut *self.subscribers.borrow_mut() {
+            let mut func = subscriber.borrow_mut();
+            // https://github.com/rust-lang/rust/issues/51886
+            (&mut *func)();
         }
     }
 }

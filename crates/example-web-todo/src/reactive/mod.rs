@@ -3,9 +3,9 @@ use std::{cell::RefCell, rc::Rc};
 
 mod atom;
 
-type Subscriber = Rc<RefCell<dyn Fn()>>;
+type Subscriber = Rc<RefCell<dyn FnMut()>>;
 
-pub fn react(f: impl Fn() + 'static) {
+pub fn react(mut f: impl FnMut() + 'static) {
     CURRENT_REACTION.with(|current_reaction| {
         let mut current_reaction = current_reaction.borrow_mut();
         assert!(current_reaction.is_none());

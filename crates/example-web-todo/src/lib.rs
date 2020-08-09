@@ -5,7 +5,7 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 use crate::reactive::{react, Atom};
-use std::panic;
+use std::{convert::TryInto, panic};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{window, Element, HtmlInputElement};
 use wee_alloc::WeeAlloc;
@@ -15,6 +15,8 @@ mod reactive;
 #[global_allocator]
 static ALLOC: WeeAlloc<'_> = WeeAlloc::INIT;
 
+// TODO: get rid of derives if possible
+#[derive(Clone, Eq, PartialEq)]
 struct Todo {
     title: String,
     completed: bool,
@@ -90,14 +92,68 @@ pub fn __start() -> Result<(), JsValue> {
     Ok(())
 }
 
-fn map<T: 'static>(parent: Element, xs: Atom<Vec<T>>, f: impl Fn(&T) -> Element + 'static) {
+// TODO: get rid of bounds if possible
+fn map<T: Clone + Eq + 'static>(
+    parent: Element,
+    xs: Atom<Vec<T>>,
+    mut f: impl FnMut(&T) -> Element + 'static,
+) {
+    let mut cache = Vec::new();
+
     react(move || {
-        while let Some(last_child) = parent.last_child() {
-            parent.remove_child(&last_child).unwrap_throw();
+        let xs = xs.get();
+
+        // This is the dumbest reconciler ever created
+        let mut mutations = Vec::new();
+        for index in 0..xs.len().max(cache.len()) {
+            match (cache.get(index), xs.get(index)) {
+                (None, None) => unreachable!(),
+                (Some(_), None) => {
+                    mutations.push(ListMutation::Remove(index));
+                }
+                (None, Some(_)) => {
+                    mutations.push(ListMutation::Insert(index));
+                }
+                (Some(prev), Some(next)) if prev != next => {
+                    mutations.push(ListMutation::Remove(index));
+                    mutations.push(ListMutation::Insert(index));
+                }
+                (Some(_), Some(_)) => {}
+            }
         }
 
-        for x in xs.get().iter() {
-            parent.append_with_node_1(&f(x)).unwrap_throw();
+        for mutation in &mutations {
+            match mutation {
+                &ListMutation::Remove(index) => {
+                    cache.remove(index);
+                }
+                &ListMutation::Insert(index) => {
+                    cache.insert(index, xs[index].clone());
+                }
+            }
+        }
+
+        for mutation in mutations {
+            match mutation {
+                ListMutation::Remove(index) => {
+                    parent
+                        .children()
+                        .item(index.try_into().unwrap())
+                        .unwrap_throw()
+                        .remove();
+                }
+                ListMutation::Insert(index) => {
+                    let reference = parent.children().item(index.try_into().unwrap());
+                    parent
+                        .insert_before(&f(&xs[index]), reference.map(<_>::unchecked_into).as_ref())
+                        .unwrap_throw();
+                }
+            }
         }
     });
+}
+
+enum ListMutation {
+    Remove(usize),
+    Insert(usize),
 }
