@@ -41,6 +41,10 @@ impl<T> Atom<T> {
     pub fn get_mut(&self) -> AtomMut<'_, T> {
         AtomMut::new(self.value.borrow_mut(), self.subscribers.clone())
     }
+
+    pub fn set(&self, value: T) {
+        *self.get_mut() = value;
+    }
 }
 
 impl<T> Clone for Atom<T> {

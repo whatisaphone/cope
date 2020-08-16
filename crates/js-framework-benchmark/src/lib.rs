@@ -48,6 +48,25 @@ pub fn __start() {
 }
 
 fn app(state: Rc<RefCell<State>>) -> Element {
+    let selected_id = Atom::new(0);
+
+    let handle_select = {
+        let selected_id = selected_id.clone();
+        move |id: usize| {
+            selected_id.set(id);
+        }
+    };
+
+    let handle_remove = {
+        let state = state.clone();
+        move |item: Rc<Item>| {
+            let state = state.borrow();
+            let mut data = state.data.get_mut();
+            let index = data.iter().position(|x| *x == item).unwrap();
+            data.remove(index);
+        }
+    };
+
     let container = div();
     container.class_list().add_1("container").unwrap_throw();
 
@@ -63,19 +82,9 @@ fn app(state: Rc<RefCell<State>>) -> Element {
     table.append_with_node_1(&tbody).unwrap_throw();
     container.append_with_node_1(&table).unwrap_throw();
 
-    let handle_remove = {
-        let state = state.clone();
-        move |item: Rc<Item>| {
-            let state = state.borrow();
-            let mut data = state.data.get_mut();
-            let index = data.iter().position(|x| *x == item).unwrap();
-            data.remove(index);
-        }
-    };
-
     let data = state.borrow().data.clone();
     map(data, tbody, move |item| {
-        row(item.clone(), {
+        row(item.clone(), selected_id.clone(), handle_select.clone(), {
             let item = item.clone();
             let handle_remove = handle_remove.clone();
             move || handle_remove(item.clone())
@@ -109,7 +118,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
     row.class_list().add_1("row").unwrap_throw();
     right_col.append_with_node_1(&row).unwrap_throw();
 
-    row.append_with_node_1(&header_button("Create 1,000 rows", {
+    row.append_with_node_1(&header_button("run", "Create 1,000 rows", {
         let state = state.clone();
         move || {
             state.borrow().data.get_mut().clear();
@@ -117,7 +126,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("Create 10,000 rows", {
+    row.append_with_node_1(&header_button("runlots", "Create 10,000 rows", {
         let state = state.clone();
         move || {
             state.borrow().data.get_mut().clear();
@@ -125,14 +134,14 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("Append 1,000 rows", {
+    row.append_with_node_1(&header_button("add", "Append 1,000 rows", {
         let state = state.clone();
         move || {
             append_rows(&state.borrow(), 1000);
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("Update every 10th row", {
+    row.append_with_node_1(&header_button("update", "Update every 10th row", {
         let state = state.clone();
         move || {
             let state = state.borrow();
@@ -143,14 +152,14 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("Clear", {
+    row.append_with_node_1(&header_button("clear", "Clear", {
         let state = state.clone();
         move || {
             state.borrow().data.get_mut().clear();
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("Swap Rows", {
+    row.append_with_node_1(&header_button("swaprows", "Swap Rows", {
         let state = state.clone();
         move || {
             let state = state.borrow();
@@ -165,13 +174,14 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
     jumbotron
 }
 
-fn header_button(text: &str, on_click: impl Fn() + 'static) -> Element {
+fn header_button(id: &str, text: &str, on_click: impl Fn() + 'static) -> Element {
     let col = div();
     col.class_list()
         .add_2("col-sm-6", "smallpad")
         .unwrap_throw();
 
     let button = button();
+    button.set_id(id);
     button
         .class_list()
         .add_3("btn", "btn-primary", "btn-block")
@@ -191,8 +201,24 @@ fn header_button(text: &str, on_click: impl Fn() + 'static) -> Element {
     col
 }
 
-fn row(item: Rc<Item>, on_remove: impl Fn() + 'static) -> Element {
+fn row(
+    item: Rc<Item>,
+    selected_id: Atom<usize>,
+    on_select: impl Fn(usize) + 'static,
+    on_remove: impl Fn() + 'static,
+) -> Element {
     let tr = tr();
+    react({
+        let tr = tr.clone();
+        let item = item.clone();
+        move || {
+            if *selected_id.get() == item.id {
+                tr.class_list().add_1("danger");
+            } else {
+                tr.class_list().remove_1("danger");
+            }
+        }
+    });
 
     let id_cell = td();
     id_cell.class_list().add_1("col-md-1").unwrap_throw();
@@ -203,11 +229,20 @@ fn row(item: Rc<Item>, on_remove: impl Fn() + 'static) -> Element {
     label_cell.class_list().add_1("col-md-4").unwrap_throw();
     let label_link = a();
     react({
+        let item = item.clone();
         let label_link = label_link.clone();
         move || {
             label_link.set_text_content(Some(&item.label.get()));
         }
     });
+    label_link.add_event_listener_with_callback(
+        "click",
+        Closure::wrap(Box::new(move || {
+            on_select(item.id);
+        }) as Box<dyn Fn()>)
+        .into_js_value()
+        .unchecked_ref(),
+    );
     label_cell.append_with_node_1(&label_link).unwrap_throw();
     tr.append_with_node_1(&label_cell).unwrap_throw();
 
