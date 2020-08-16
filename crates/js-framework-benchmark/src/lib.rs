@@ -59,10 +59,10 @@ fn app(state: Rc<RefCell<State>>) -> Element {
 
     let handle_remove = {
         let state = state.clone();
-        move |item: Rc<Item>| {
+        move |id: usize| {
             let state = state.borrow();
             let mut data = state.data.get_mut();
-            let index = data.iter().position(|x| *x == item).unwrap();
+            let index = data.iter().position(|item| item.id == id).unwrap();
             data.remove(index);
         }
     };
@@ -84,11 +84,12 @@ fn app(state: Rc<RefCell<State>>) -> Element {
 
     let data = state.borrow().data.clone();
     map(data, tbody, move |item| {
-        row(item.clone(), selected_id.clone(), handle_select.clone(), {
-            let item = item.clone();
-            let handle_remove = handle_remove.clone();
-            move || handle_remove(item.clone())
-        })
+        row(
+            item.clone(),
+            selected_id.clone(),
+            handle_select.clone(),
+            handle_remove.clone(),
+        )
     });
 
     container
@@ -205,7 +206,7 @@ fn row(
     item: Rc<Item>,
     selected_id: Atom<usize>,
     on_select: impl Fn(usize) + 'static,
-    on_remove: impl Fn() + 'static,
+    on_remove: impl Fn(usize) + 'static,
 ) -> Element {
     let tr = tr();
     react({
@@ -213,9 +214,9 @@ fn row(
         let item = item.clone();
         move || {
             if *selected_id.get() == item.id {
-                tr.class_list().add_1("danger");
+                tr.class_list().add_1("danger").unwrap_throw();
             } else {
-                tr.class_list().remove_1("danger");
+                tr.class_list().remove_1("danger").unwrap_throw();
             }
         }
     });
@@ -235,14 +236,19 @@ fn row(
             label_link.set_text_content(Some(&item.label.get()));
         }
     });
-    label_link.add_event_listener_with_callback(
-        "click",
-        Closure::wrap(Box::new(move || {
-            on_select(item.id);
-        }) as Box<dyn Fn()>)
-        .into_js_value()
-        .unchecked_ref(),
-    );
+    label_link
+        .add_event_listener_with_callback(
+            "click",
+            Closure::wrap(Box::new({
+                let item = item.clone();
+                move || {
+                    on_select(item.id);
+                }
+            }) as Box<dyn Fn()>)
+            .into_js_value()
+            .unchecked_ref(),
+        )
+        .unwrap_throw();
     label_cell.append_with_node_1(&label_link).unwrap_throw();
     tr.append_with_node_1(&label_cell).unwrap_throw();
 
@@ -253,9 +259,11 @@ fn row(
     remove_link
         .add_event_listener_with_callback(
             "click",
-            Closure::wrap(Box::new(on_remove) as Box<dyn Fn()>)
-                .into_js_value()
-                .unchecked_ref(),
+            Closure::wrap(Box::new(move || {
+                on_remove(item.id);
+            }) as Box<dyn Fn()>)
+            .into_js_value()
+            .unchecked_ref(),
         )
         .unwrap_throw();
     let remove_icon = span();
