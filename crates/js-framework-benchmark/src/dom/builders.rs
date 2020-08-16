@@ -16,9 +16,11 @@ macro_rules! define_element_builders {
 }
 
 define_element_builders!(
+    a => Element,
     button => HtmlButtonElement,
     div => Element,
     h1 => Element,
+    span => Element,
     table => Element,
     tbody => Element,
     tr => Element,

@@ -23,6 +23,7 @@ features = [
     "Document",
     "DomTokenList",
     "Element",
+    "HtmlCollection",
     "HtmlButtonElement",
     "Window",
 ]
