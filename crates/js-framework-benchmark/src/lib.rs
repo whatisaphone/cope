@@ -8,6 +8,7 @@ use crate::{
     dom::{
         builders::{a, button, div, h1, span, table, tbody, td, tr},
         list::map,
+        misc::toggle_class,
     },
     reactive::{react, Atom},
 };
@@ -209,16 +210,9 @@ fn row(
     on_remove: impl Fn(usize) + 'static,
 ) -> Element {
     let tr = tr();
-    react({
-        let tr = tr.clone();
+    toggle_class(tr.clone(), "danger", {
         let item = item.clone();
-        move || {
-            if *selected_id.get() == item.id {
-                tr.class_list().add_1("danger").unwrap_throw();
-            } else {
-                tr.class_list().remove_1("danger").unwrap_throw();
-            }
-        }
+        move || *selected_id.get() == item.id
     });
 
     let id_cell = td();
