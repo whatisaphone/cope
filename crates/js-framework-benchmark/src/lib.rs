@@ -7,10 +7,10 @@
 use crate::{
     dom::{
         builders::{a, button, div, h1, span, table, tbody, td, tr},
-        list::map,
+        list::tracked_map,
         misc::toggle_class,
     },
-    reactive::{react, Atom},
+    reactive::{react, Atom, TrackingVec},
 };
 use js_sys::Math;
 use std::{cell::RefCell, panic, rc::Rc};
@@ -27,7 +27,7 @@ static ALLOC: WeeAlloc<'_> = WeeAlloc::INIT;
 #[derive(Default)]
 struct State {
     next_id: Atom<usize>,
-    data: Atom<Vec<Rc<Item>>>,
+    data: TrackingVec<Rc<Item>>,
 }
 
 // TODO: get rid of derives
@@ -62,9 +62,13 @@ fn app(state: Rc<RefCell<State>>) -> Element {
         let state = state.clone();
         move |id: usize| {
             let state = state.borrow();
-            let mut data = state.data.get_mut();
-            let index = data.iter().position(|item| item.id == id).unwrap();
-            data.remove(index);
+            let index = state
+                .data
+                .as_slice()
+                .iter()
+                .position(|item| item.id == id)
+                .unwrap();
+            state.data.remove(index);
         }
     };
 
@@ -84,7 +88,7 @@ fn app(state: Rc<RefCell<State>>) -> Element {
     container.append_with_node_1(&table).unwrap_throw();
 
     let data = state.borrow().data.clone();
-    map(data, tbody, move |item| {
+    tracked_map(data, tbody, move |item| {
         row(
             item.clone(),
             selected_id.clone(),
@@ -123,7 +127,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
     row.append_with_node_1(&header_button("run", "Create 1,000 rows", {
         let state = state.clone();
         move || {
-            state.borrow().data.get_mut().clear();
+            state.borrow().data.clear();
             append_rows(&state.borrow(), 1000);
         }
     }))
@@ -131,7 +135,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
     row.append_with_node_1(&header_button("runlots", "Create 10,000 rows", {
         let state = state.clone();
         move || {
-            state.borrow().data.get_mut().clear();
+            state.borrow().data.clear();
             append_rows(&state.borrow(), 10000);
         }
     }))
@@ -147,8 +151,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         let state = state.clone();
         move || {
             let state = state.borrow();
-            let mut data = state.data.get_mut();
-            for item in data.iter_mut().step_by(10) {
+            for item in state.data.as_slice().iter().step_by(10) {
                 *item.label.get_mut() += " !!!";
             }
         }
@@ -157,7 +160,7 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
     row.append_with_node_1(&header_button("clear", "Clear", {
         let state = state.clone();
         move || {
-            state.borrow().data.get_mut().clear();
+            state.borrow().data.clear();
         }
     }))
     .unwrap_throw();
@@ -165,9 +168,8 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         let state = state.clone();
         move || {
             let state = state.borrow();
-            let mut data = state.data.get_mut();
-            if data.len() > 998 {
-                data.swap(1, 998);
+            if state.data.len() > 998 {
+                state.data.swap(1, 998);
             }
         }
     }))
@@ -278,9 +280,8 @@ fn row(
 
 fn append_rows(state: &State, count: usize) {
     let mut next_id = state.next_id.get_mut();
-    let mut data = state.data.get_mut();
 
-    data.reserve(count);
+    state.data.reserve(count);
     for _ in 0..count {
         *next_id += 1;
         let label = format!(
@@ -289,7 +290,7 @@ fn append_rows(state: &State, count: usize) {
             random_choice(COLORS),
             random_choice(NOUNS),
         );
-        data.push(Rc::new(Item {
+        state.data.push(Rc::new(Item {
             id: *next_id,
             label: Atom::new(label),
         }));

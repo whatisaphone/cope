@@ -1,8 +1,12 @@
-pub use self::atom::Atom;
+pub use self::{
+    atom::Atom,
+    tracking_vec::{ListMutation, TrackingVec},
+};
 use std::{cell::RefCell, rc::Rc};
 
 mod atom;
 pub mod reconcile;
+mod tracking_vec;
 
 type Subscriber = Rc<RefCell<dyn FnMut()>>;
 
