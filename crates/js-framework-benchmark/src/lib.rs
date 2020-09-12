@@ -6,7 +6,7 @@
 
 use crate::{
     dom::{
-        builders::{a, button, div, h1, span, table, tbody, td, tr},
+        builders::{button, div, h1, table, tbody, tr},
         list::tracked_map,
         misc::toggle_class,
     },
@@ -15,7 +15,7 @@ use crate::{
 use js_sys::Math;
 use std::{cell::RefCell, panic, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{window, Element};
+use web_sys::{window, Element, Node};
 use wee_alloc::WeeAlloc;
 
 mod dom;
@@ -210,21 +210,27 @@ fn row(
     selected_id: Atom<usize>,
     on_select: impl Fn(usize) + 'static,
     on_remove: impl Fn(usize) + 'static,
-) -> Element {
-    let tr = tr();
-    toggle_class(tr.clone(), "danger", {
+) -> Node {
+    #[rustfmt::skip]
+    thread_local! {
+        static TEMPLATE: Element = {
+            let template = tr();
+            template.set_inner_html(r#"<td class="col-md-1"></td><td class="col-md-4"><a></a></td><td class="col-md-1"><a><span class="glyphicon glyphicon-remove"></span></a></td><td class="col-md-6"></td>"#);
+            template
+        }
+    }
+
+    let tr = TEMPLATE.with(|t| t.clone_node_with_deep(true).unwrap_throw());
+    toggle_class(tr.clone().unchecked_into(), "danger", {
         let item = item.clone();
         move || *selected_id.get() == item.id
     });
 
-    let id_cell = td();
-    id_cell.class_list().add_1("col-md-1").unwrap_throw();
+    let id_cell = tr.first_child().unwrap_throw();
     id_cell.set_text_content(Some(&item.id.to_string()));
-    tr.append_with_node_1(&id_cell).unwrap_throw();
 
-    let label_cell = td();
-    label_cell.class_list().add_1("col-md-4").unwrap_throw();
-    let label_link = a();
+    let label_cell = id_cell.next_sibling().unwrap_throw();
+    let label_link = label_cell.first_child().unwrap_throw();
     react({
         let item = item.clone();
         let label_link = label_link.clone();
@@ -245,12 +251,9 @@ fn row(
             .unchecked_ref(),
         )
         .unwrap_throw();
-    label_cell.append_with_node_1(&label_link).unwrap_throw();
-    tr.append_with_node_1(&label_cell).unwrap_throw();
 
-    let remove_cell = td();
-    remove_cell.class_list().add_1("col-md-1").unwrap_throw();
-    let remove_link = a();
+    let remove_cell = label_cell.next_sibling().unwrap_throw();
+    let remove_link = remove_cell.first_child().unwrap_throw();
     // TODO: try delegating event listener, and benchmark
     remove_link
         .add_event_listener_with_callback(
@@ -262,18 +265,6 @@ fn row(
             .unchecked_ref(),
         )
         .unwrap_throw();
-    let remove_icon = span();
-    remove_icon
-        .class_list()
-        .add_2("glyphicon", "glyphicon-remove")
-        .unwrap_throw();
-    remove_link.append_with_node_1(&remove_icon).unwrap_throw();
-    remove_cell.append_with_node_1(&remove_link).unwrap_throw();
-    tr.append_with_node_1(&remove_cell).unwrap_throw();
-
-    let padding_cell = td();
-    padding_cell.class_list().add_1("col-md-6").unwrap_throw();
-    tr.append_with_node_1(&padding_cell).unwrap_throw();
 
     tr
 }
