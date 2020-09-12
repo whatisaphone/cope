@@ -1,7 +1,7 @@
 use crate::reactive::{react, reconcile, Atom, ListMutation, TrackingVec};
 use std::convert::TryInto;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
-use web_sys::Element;
+use web_sys::{Element, Node};
 
 // TODO: get rid of bounds
 #[allow(dead_code)]
@@ -38,7 +38,7 @@ pub fn map<T: Clone + Eq + 'static>(
 pub fn tracked_map<T: 'static>(
     xs: TrackingVec<T>,
     parent: Element,
-    mut f: impl FnMut(&T) -> Element + 'static,
+    mut f: impl FnMut(&T) -> Node + 'static,
 ) {
     react(move || {
         // Re-run whenever `xs` changes
