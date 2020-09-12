@@ -15,7 +15,7 @@ use crate::{
 use js_sys::Math;
 use std::{cell::RefCell, panic, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{window, Element};
+use web_sys::{window, Element, Event};
 use wee_alloc::WeeAlloc;
 
 mod dom;
@@ -87,14 +87,40 @@ fn app(state: Rc<RefCell<State>>) -> Element {
     table.append_with_node_1(&tbody).unwrap_throw();
     container.append_with_node_1(&table).unwrap_throw();
 
+    table
+        .add_event_listener_with_callback(
+            "click",
+            Closure::wrap(Box::new({
+                move |event: Event| {
+                    let target = event.target().unwrap_throw();
+                    let target: &Element = target.unchecked_ref();
+                    let item_id = target
+                        .closest("tr")
+                        .unwrap_throw()
+                        .unwrap_throw()
+                        .query_selector("td")
+                        .unwrap_throw()
+                        .unwrap_throw()
+                        .text_content()
+                        .unwrap_throw()
+                        .parse()
+                        .unwrap();
+
+                    if target.node_name() == "A" {
+                        handle_select(item_id);
+                    } else if target.node_name() == "SPAN" {
+                        handle_remove(item_id);
+                    }
+                }
+            }) as Box<dyn Fn(_)>)
+            .into_js_value()
+            .unchecked_ref(),
+        )
+        .unwrap_throw();
+
     let data = state.borrow().data.clone();
     tracked_map(data, tbody, move |item| {
-        row(
-            item.clone(),
-            selected_id.clone(),
-            handle_select.clone(),
-            handle_remove.clone(),
-        )
+        row(item.clone(), selected_id.clone())
     });
 
     container
@@ -205,12 +231,7 @@ fn header_button(id: &str, text: &str, on_click: impl Fn() + 'static) -> Element
     col
 }
 
-fn row(
-    item: Rc<Item>,
-    selected_id: Atom<usize>,
-    on_select: impl Fn(usize) + 'static,
-    on_remove: impl Fn(usize) + 'static,
-) -> Element {
+fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Element {
     let tr = tr();
     toggle_class(tr.clone(), "danger", {
         let item = item.clone();
@@ -232,36 +253,12 @@ fn row(
             label_link.set_text_content(Some(&item.label.get()));
         }
     });
-    label_link
-        .add_event_listener_with_callback(
-            "click",
-            Closure::wrap(Box::new({
-                let item = item.clone();
-                move || {
-                    on_select(item.id);
-                }
-            }) as Box<dyn Fn()>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap_throw();
     label_cell.append_with_node_1(&label_link).unwrap_throw();
     tr.append_with_node_1(&label_cell).unwrap_throw();
 
     let remove_cell = td();
     remove_cell.class_list().add_1("col-md-1").unwrap_throw();
     let remove_link = a();
-    // TODO: try delegating event listener, and benchmark
-    remove_link
-        .add_event_listener_with_callback(
-            "click",
-            Closure::wrap(Box::new(move || {
-                on_remove(item.id);
-            }) as Box<dyn Fn()>)
-            .into_js_value()
-            .unchecked_ref(),
-        )
-        .unwrap_throw();
     let remove_icon = span();
     remove_icon
         .class_list()
