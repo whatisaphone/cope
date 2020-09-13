@@ -30,8 +30,6 @@ struct State {
     data: TrackingVec<Rc<Item>>,
 }
 
-// TODO: get rid of derives
-#[derive(Clone, Eq, PartialEq)]
 struct Item {
     id: usize,
     label: Atom<String>,

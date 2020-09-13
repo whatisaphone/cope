@@ -11,15 +11,6 @@ pub struct Atom<T> {
     subscribers: Rc<RefCell<Vec<Subscriber>>>,
 }
 
-// TODO: get rid of these impls
-impl<T: PartialEq> PartialEq for Atom<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.value.eq(&other.value)
-    }
-}
-
-impl<T: Eq> Eq for Atom<T> {}
-
 impl<T> Atom<T> {
     pub fn new(initial: T) -> Self {
         Self {
