@@ -252,12 +252,8 @@ fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Node {
 
     let label_cell = id_cell.next_sibling().unwrap_throw();
     let label_link = label_cell.first_child().unwrap_throw();
-    react({
-        let item = item.clone();
-        let label_link = label_link.clone();
-        move || {
-            label_link.set_text_content(Some(&item.label.get()));
-        }
+    react(move || {
+        label_link.set_text_content(Some(&item.label.get()));
     });
 
     tr
