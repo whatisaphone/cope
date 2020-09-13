@@ -6,7 +6,7 @@
 
 use crate::{
     dom::{
-        builders::{button, div, h1, table, tbody, tr},
+        builders::{a, button, div, h1, span, table, tbody, td, tr},
         list::tracked_map,
         misc::toggle_class,
     },
@@ -232,13 +232,37 @@ fn header_button(id: &str, text: &str, on_click: impl Fn() + 'static) -> Element
 }
 
 fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Node {
-    #[rustfmt::skip]
     thread_local! {
         static TEMPLATE: Element = {
-            let template = tr();
-            template.set_inner_html(r#"<td class="col-md-1"></td><td class="col-md-4"><a></a></td><td class="col-md-1"><a><span class="glyphicon glyphicon-remove"></span></a></td><td class="col-md-6"></td>"#);
-            template
-        }
+            let tr = tr();
+
+            let id_cell = td();
+            id_cell.class_list().add_1("col-md-1").unwrap_throw();
+            tr.append_with_node_1(&id_cell).unwrap_throw();
+
+            let label_cell = td();
+            label_cell.class_list().add_1("col-md-4").unwrap_throw();
+            let label_link = a();
+            label_cell.append_with_node_1(&label_link).unwrap_throw();
+            tr.append_with_node_1(&label_cell).unwrap_throw();
+
+            let remove_cell = td();
+            let remove_link = a();
+            let remove_icon = span();
+            remove_icon
+                .class_list()
+                .add_2("glyphicon", "glyphicon-remove")
+                .unwrap_throw();
+            remove_link.append_with_node_1(&remove_icon).unwrap_throw();
+            remove_cell.append_with_node_1(&remove_link).unwrap_throw();
+            tr.append_with_node_1(&remove_cell).unwrap_throw();
+
+            let pad_cell = td();
+            pad_cell.class_list().add_1("col-md-1").unwrap_throw();
+            tr.append_with_node_1(&pad_cell).unwrap_throw();
+
+            tr
+        };
     }
 
     let tr = TEMPLATE.with(|t| t.clone_node_with_deep(true).unwrap_throw());
