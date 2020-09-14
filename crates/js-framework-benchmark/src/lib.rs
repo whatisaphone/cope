@@ -13,7 +13,11 @@ use crate::{
     reactive::{react, Atom, TrackingVec},
 };
 use js_sys::Math;
-use std::{cell::RefCell, panic, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    panic,
+    rc::Rc,
+};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{window, Element, Event, Node};
 use wee_alloc::WeeAlloc;
@@ -26,7 +30,7 @@ static ALLOC: WeeAlloc<'_> = WeeAlloc::INIT;
 
 #[derive(Default)]
 struct State {
-    next_id: Atom<usize>,
+    next_id: Cell<usize>,
     data: TrackingVec<Rc<Item>>,
 }
 
@@ -282,11 +286,9 @@ fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Node {
 }
 
 fn append_rows(state: &State, count: usize) {
-    let mut next_id = state.next_id.get_mut();
-
     state.data.reserve(count);
     for _ in 0..count {
-        *next_id += 1;
+        state.next_id.set(state.next_id.get() + 1);
         let label = format!(
             "{} {} {}",
             random_choice(ADJECTIVES),
@@ -294,7 +296,7 @@ fn append_rows(state: &State, count: usize) {
             random_choice(NOUNS),
         );
         state.data.push(Rc::new(Item {
-            id: *next_id,
+            id: state.next_id.get(),
             label: Atom::new(label),
         }));
     }
