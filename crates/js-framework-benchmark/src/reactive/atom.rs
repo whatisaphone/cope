@@ -1,4 +1,4 @@
-use crate::reactive::{Subscriber, CURRENT_REACTION};
+use crate::reactive::{Batch, Subscriber, CURRENT_REACTION, CURRENT_UPDATE};
 use std::{
     cell::{Ref, RefCell, RefMut},
     ops::{Deref, DerefMut},
@@ -30,7 +30,15 @@ impl<T> Atom<T> {
     }
 
     pub fn get_mut(&self) -> AtomMut<'_, T> {
-        AtomMut::new(self.value.borrow_mut(), self.subscribers.clone())
+        let batch = Batch::new();
+
+        CURRENT_UPDATE.with(|current_update| {
+            let mut current_update = current_update.borrow_mut();
+            let current_update = current_update.as_mut().unwrap();
+            current_update.extend_subscribers_dedup(self.subscribers.borrow().iter());
+        });
+
+        AtomMut::new(self.value.borrow_mut(), batch)
     }
 
     pub fn set(&self, value: T) {
@@ -48,29 +56,18 @@ impl<T> Clone for Atom<T> {
 }
 
 pub struct AtomMut<'a, T> {
-    // Option dance
+    // Option dance (TODO: now unnecessary?)
     reff: Option<RefMut<'a, T>>,
-    subscribers: Rc<RefCell<Vec<Subscriber>>>,
+    // `batch` is dropped after `reff`. Its `Drop` runs reactions if needed.
+    #[allow(dead_code)]
+    batch: Batch,
 }
 
 impl<'a, T> AtomMut<'a, T> {
-    pub fn new(reff: RefMut<'a, T>, subscribers: Rc<RefCell<Vec<Subscriber>>>) -> Self {
+    pub fn new(reff: RefMut<'a, T>, batch: Batch) -> Self {
         AtomMut {
             reff: Some(reff),
-            subscribers,
-        }
-    }
-}
-
-impl<'a, T> Drop for AtomMut<'a, T> {
-    fn drop(&mut self) {
-        // Drop our borrow first so the subscribers are able to borrow
-        drop(self.reff.take());
-
-        for subscriber in &mut *self.subscribers.borrow_mut() {
-            let mut func = subscriber.borrow_mut();
-            // https://github.com/rust-lang/rust/issues/51886
-            (&mut *func)();
+            batch,
         }
     }
 }
