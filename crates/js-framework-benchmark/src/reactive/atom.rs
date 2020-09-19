@@ -41,6 +41,11 @@ impl<T> Atom<T> {
         AtomMut::new(self.value.borrow_mut(), batch)
     }
 
+    /// Bypass the reactive system and return a ref that doesn't track updates.
+    pub fn get_mut_frozen(&self) -> RefMut<'_, T> {
+        self.value.borrow_mut()
+    }
+
     pub fn set(&self, value: T) {
         *self.get_mut() = value;
     }

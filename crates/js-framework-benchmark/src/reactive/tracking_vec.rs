@@ -33,6 +33,10 @@ impl<T> TrackingVec<T> {
         Some(Ref::map(inner, |inner| inner.get(index).unwrap()))
     }
 
+    pub fn batch(&self) -> TrackingVecMut<'_, T> {
+        TrackingVecMut { inner: self }
+    }
+
     pub fn reserve(&self, additional: usize) {
         // TODO: this doesn't mutate the vec, can we "cheat" somehow and not run
         // reactions?
@@ -89,6 +93,33 @@ impl<T> Clone for TrackingVec<T> {
             inner: self.inner.clone(),
             mutations: self.mutations.clone(),
         }
+    }
+}
+
+pub struct TrackingVecMut<'a, T> {
+    inner: &'a TrackingVec<T>,
+}
+
+impl<'a, T> TrackingVecMut<'a, T> {
+    pub fn reserve(&self, additional: usize) {
+        self.inner.inner.get_mut_frozen().reserve(additional);
+    }
+
+    pub fn push(&self, value: T) {
+        let index = self.inner.inner.get().len();
+        self.inner
+            .mutations
+            .borrow_mut()
+            .push(ListMutation::Insert(index));
+
+        self.inner.inner.get_mut_frozen().push(value);
+    }
+}
+
+impl<'a, T> Drop for TrackingVecMut<'a, T> {
+    fn drop(&mut self) {
+        // Flush updates
+        self.inner.inner.get_mut();
     }
 }
 

@@ -295,7 +295,8 @@ fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Node {
 fn append_rows(state: &State, count: usize) {
     let _batch = batch();
 
-    state.data.reserve(count);
+    let data = state.data.batch();
+    data.reserve(count);
     for _ in 0..count {
         state.next_id.set(state.next_id.get() + 1);
         let label = format!(
@@ -304,7 +305,7 @@ fn append_rows(state: &State, count: usize) {
             random_choice(COLORS),
             random_choice(NOUNS),
         );
-        state.data.push(Rc::new(Item {
+        data.push(Rc::new(Item {
             id: state.next_id.get(),
             label: Atom::new(label),
         }));
