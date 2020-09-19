@@ -125,6 +125,13 @@ fn app(state: Rc<RefCell<State>>) -> Element {
         row(item.clone(), selected_id.clone())
     });
 
+    let preload_icon = span();
+    preload_icon
+        .class_list()
+        .add_3("preloadicon", "glyphicon", "glyphicon-remove")
+        .unwrap_throw();
+    container.append_with_node_1(&preload_icon).unwrap_throw();
+
     container
 }
 
