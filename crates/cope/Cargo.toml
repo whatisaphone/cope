@@ -1,0 +1,11 @@
+[package]
+name = "cope"
+version = "0.0.0"
+authors = ["John Simon <john@whatisaph.one>"]
+edition = "2018"
+
+[features]
+strict = []
+
+[dependencies]
+scopeguard = "1.1.0"
