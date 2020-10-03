@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 pub struct Engine {
     current_reaction: RefCell<Option<Reaction>>,
-    pub current_update: RefCell<Option<Update>>,
+    pub(crate) current_update: RefCell<Option<Update>>,
 }
 
 impl Engine {
@@ -13,7 +13,7 @@ impl Engine {
         }
     }
 
-    pub fn track(&self, subscriptions: Rc<RefCell<Vec<Rc<RefCell<Vec<Subscription>>>>>>) {
+    pub(crate) fn track(&self, subscriptions: Rc<RefCell<Vec<Rc<RefCell<Vec<Subscription>>>>>>) {
         let mut reaction = self.current_reaction.borrow_mut();
         let reaction = match reaction.as_mut() {
             Some(reaction) => reaction,
@@ -89,7 +89,7 @@ impl Reaction {
     }
 }
 
-pub struct Update {
+pub(crate) struct Update {
     updates: Vec<Box<dyn FnOnce()>>,
 }
 
