@@ -1,4 +1,4 @@
-use crate::inst::engine::Engine;
+use crate::instance::engine::Engine;
 use std::{
     cell::{Ref, RefCell},
     rc::Rc,
@@ -61,7 +61,7 @@ impl<T: 'static> Atom<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inst::engine::Engine;
+    use crate::instance::engine::Engine;
 
     #[test]
     fn get_initial_value() {

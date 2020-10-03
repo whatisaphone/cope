@@ -3,4 +3,4 @@
 // #![warn(clippy::cargo)]
 #![cfg_attr(feature = "strict", deny(warnings))]
 
-pub mod inst;
+pub mod instance;

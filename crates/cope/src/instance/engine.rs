@@ -104,7 +104,7 @@ impl Update {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inst::atom::Atom;
+    use crate::instance::atom::Atom;
     use std::rc::Rc;
 
     #[test]
