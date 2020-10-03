@@ -26,20 +26,31 @@ impl Engine {
 
     pub fn batch(&self, f: impl FnOnce() + 'static) {
         let mut current_update = self.current_update.borrow_mut();
-        if current_update.is_none() {
-            drop(current_update);
-            f();
+        let root = current_update.is_none();
+        if root {
+            *current_update = Some(Update::new());
+        }
+        // TODO: avoid allocation?
+        current_update.as_mut().unwrap().updates.push(Box::new(f));
+        drop(current_update);
+
+        if !root {
             return;
         }
 
-        *current_update = Some(Update::new());
-        drop(current_update);
-        f();
-
-        let mut current_update = self.current_update.borrow_mut();
-        for update in current_update.take().unwrap().updates {
-            update();
+        loop {
+            let head = {
+                let mut update = self.current_update.borrow_mut();
+                slow_pop_front(&mut update.as_mut().unwrap().updates)
+            };
+            let head = match head {
+                Some(x) => x,
+                None => break,
+            };
+            head();
         }
+
+        self.current_update.borrow_mut().take().unwrap();
     }
 
     pub fn react(self: Rc<Self>, f: impl Fn() + 'static) {
@@ -53,6 +64,14 @@ impl Engine {
         let mut current_reaction = self.current_reaction.borrow_mut();
         let reaction = current_reaction.take().unwrap();
         reaction.subscriptions.borrow_mut().push(Rc::new(f));
+    }
+}
+
+fn slow_pop_front<T>(xs: &mut Vec<T>) -> Option<T> {
+    if xs.is_empty() {
+        None
+    } else {
+        Some(xs.remove(0))
     }
 }
 
@@ -105,7 +124,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "TODO"]
     fn commit_changes_after_reaction() {
         let engine = Rc::new(Engine::new());
         let atom = Atom::new(engine.clone(), 1);
