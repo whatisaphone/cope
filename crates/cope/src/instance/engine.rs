@@ -24,33 +24,23 @@ impl Engine {
             .push(reaction.subscriptions.clone());
     }
 
-    pub fn batch(&self, f: impl FnOnce() + 'static) {
+    pub fn batch(self: &Rc<Self>) -> Batch {
         let mut current_update = self.current_update.borrow_mut();
         let root = current_update.is_none();
-        if root {
-            *current_update = Some(Update::new());
-        }
-        // TODO: avoid allocation?
-        current_update.as_mut().unwrap().updates.push(Box::new(f));
-        drop(current_update);
-
         if !root {
-            return;
+            return Batch { engine: None };
         }
 
-        loop {
-            let head = {
-                let mut update = self.current_update.borrow_mut();
-                slow_pop_front(&mut update.as_mut().unwrap().updates)
-            };
-            let head = match head {
-                Some(x) => x,
-                None => break,
-            };
-            head();
+        *current_update = Some(Update::new());
+        Batch {
+            engine: Some(self.clone()),
         }
+    }
 
-        self.current_update.borrow_mut().take().unwrap();
+    pub(crate) fn enqueue(&self, f: impl FnOnce() + 'static) {
+        let mut update = self.current_update.borrow_mut();
+        let update = update.as_mut().unwrap();
+        update.updates.push(Box::new(f));
     }
 
     pub fn react(self: Rc<Self>, f: impl Fn() + 'static) {
@@ -101,6 +91,33 @@ impl Update {
     }
 }
 
+pub struct Batch {
+    engine: Option<Rc<Engine>>,
+}
+
+impl Drop for Batch {
+    fn drop(&mut self) {
+        let engine = match &mut self.engine {
+            Some(x) => x,
+            None => return,
+        };
+
+        loop {
+            let head = {
+                let mut update = engine.current_update.borrow_mut();
+                slow_pop_front(&mut update.as_mut().unwrap().updates)
+            };
+            let head = match head {
+                Some(x) => x,
+                None => break,
+            };
+            head();
+        }
+
+        engine.current_update.borrow_mut().take().unwrap();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,14 +144,12 @@ mod tests {
     fn commit_changes_after_reaction() {
         let engine = Rc::new(Engine::new());
         let atom = Atom::new(engine.clone(), 1);
-        engine.batch({
-            let atom = atom.clone();
-            move || {
-                assert_eq!(*atom.get(), 1);
-                atom.set(2);
-                assert_eq!(*atom.get(), 1);
-            }
-        });
+
+        let batch = engine.batch();
+        assert_eq!(*atom.get(), 1);
+        atom.set(2);
+        assert_eq!(*atom.get(), 1);
+        drop(batch);
         assert_eq!(*atom.get(), 2);
     }
 }

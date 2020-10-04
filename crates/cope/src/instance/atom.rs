@@ -36,13 +36,15 @@ impl<T: 'static> Atom<T> {
         *next = Some(Box::new(f));
         drop(next);
 
-        self.engine.batch({
+        let batch = self.engine.batch();
+        self.engine.enqueue({
             let value = self.value.clone();
             let next = self.next.clone();
             move || {
                 next.borrow_mut().take().unwrap()(&mut value.borrow_mut());
             }
         });
+        drop(batch);
 
         for subscriptions in self.subscriptions.borrow().iter() {
             for subscription in subscriptions.borrow().iter() {
