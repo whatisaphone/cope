@@ -123,11 +123,11 @@ fn map<T: Clone + Eq + 'static>(
         }
 
         for mutation in &mutations {
-            match mutation {
-                &ListMutation::Remove(index) => {
+            match *mutation {
+                ListMutation::Remove(index) => {
                     cache.remove(index);
                 }
-                &ListMutation::Insert(index) => {
+                ListMutation::Insert(index) => {
                     cache.insert(index, xs[index].clone());
                 }
             }

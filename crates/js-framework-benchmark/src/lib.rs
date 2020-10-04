@@ -47,10 +47,10 @@ pub fn __start() {
 
     let document = window().unwrap_throw().document().unwrap_throw();
     let body = document.body().unwrap_throw();
-    body.append_with_node_1(&app(state)).unwrap_throw();
+    body.append_with_node_1(&app(&state)).unwrap_throw();
 }
 
-fn app(state: Rc<RefCell<State>>) -> Element {
+fn app(state: &Rc<RefCell<State>>) -> Element {
     let selected_id = Atom::new(0);
 
     let handle_select = {
@@ -199,13 +199,10 @@ fn jumbotron(state: Rc<RefCell<State>>) -> Element {
         }
     }))
     .unwrap_throw();
-    row.append_with_node_1(&header_button("swaprows", "Swap Rows", {
-        let state = state.clone();
-        move || {
-            let state = state.borrow();
-            if state.data.len() > 998 {
-                state.data.swap(1, 998);
-            }
+    row.append_with_node_1(&header_button("swaprows", "Swap Rows", move || {
+        let state = state.borrow();
+        if state.data.len() > 998 {
+            state.data.swap(1, 998);
         }
     }))
     .unwrap_throw();
@@ -316,6 +313,11 @@ fn random_choice<'a>(xs: &[&'a str]) -> &'a str {
     xs[random_int(xs.len())]
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss
+)]
 fn random_int(max: usize) -> usize {
     (Math::random() * max as f64) as usize
 }

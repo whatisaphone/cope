@@ -94,7 +94,7 @@ impl Update {
         &mut self,
         subscribers: impl IntoIterator<Item = &'a Subscriber>,
     ) {
-        for subscriber in subscribers.into_iter() {
+        for subscriber in subscribers {
             let already_exists = self.subscribers.iter().any(|s| Rc::ptr_eq(s, &subscriber));
             if !already_exists {
                 self.subscribers.push(subscriber.clone());

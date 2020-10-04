@@ -34,6 +34,20 @@ repos:
         entry: cargo clippy --manifest-path crates/example-web-counter/Cargo.toml --all-targets --features strict
         pass_filenames: false
 
+      - id: check:example-web-todo
+        name: check:example-web-todo
+        language: system
+        files: '[.]rs$'
+        entry: cargo clippy --manifest-path crates/example-web-todo/Cargo.toml --all-targets --features strict
+        pass_filenames: false
+
+      - id: check:js-framework-benchmark
+        name: check:js-framework-benchmark
+        language: system
+        files: '[.]rs$'
+        entry: cargo clippy --manifest-path crates/js-framework-benchmark/Cargo.toml --all-targets --features strict
+        pass_filenames: false
+
       - id: test
         name: test
         language: system

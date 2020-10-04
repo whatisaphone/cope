@@ -46,6 +46,7 @@ impl<T> Clone for Atom<T> {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct AtomMut<'a, T> {
     // Option dance
     reff: Option<RefMut<'a, T>>,

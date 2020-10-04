@@ -37,12 +37,6 @@ impl<T> TrackingVec<T> {
         TrackingVecMut { inner: self }
     }
 
-    pub fn reserve(&self, additional: usize) {
-        // TODO: this doesn't mutate the vec, can we "cheat" somehow and not run
-        // reactions?
-        self.inner.get_mut().reserve(additional);
-    }
-
     pub fn swap(&self, a: usize, b: usize) {
         let mut mutations = self.mutations.borrow_mut();
         mutations.push(ListMutation::Remove(a));
@@ -52,15 +46,6 @@ impl<T> TrackingVec<T> {
         drop(mutations);
 
         self.inner.get_mut().swap(a, b);
-    }
-
-    pub fn push(&self, value: T) {
-        let index = self.inner.get().len();
-        self.mutations
-            .borrow_mut()
-            .push(ListMutation::Insert(index));
-
-        self.inner.get_mut().push(value);
     }
 
     pub fn clear(&self) {
@@ -96,6 +81,7 @@ impl<T> Clone for TrackingVec<T> {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct TrackingVecMut<'a, T> {
     inner: &'a TrackingVec<T>,
 }
