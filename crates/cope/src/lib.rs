@@ -4,3 +4,4 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 pub mod instance;
+pub mod singleton;

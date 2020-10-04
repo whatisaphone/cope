@@ -1,4 +1,4 @@
-use crate::reactive::Atom;
+use cope::singleton::Atom;
 use std::{
     cell::{Ref, RefCell},
     rc::Rc,
@@ -9,7 +9,7 @@ pub struct TrackingVec<T> {
     pub(crate) mutations: Rc<RefCell<Vec<ListMutation>>>,
 }
 
-impl<T> TrackingVec<T> {
+impl<T: 'static> TrackingVec<T> {
     pub fn new() -> Self {
         Self {
             inner: Atom::new(Vec::new()),
@@ -66,7 +66,7 @@ impl<T> TrackingVec<T> {
     }
 }
 
-impl<T> Default for TrackingVec<T> {
+impl<T: 'static> Default for TrackingVec<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -82,13 +82,13 @@ impl<T> Clone for TrackingVec<T> {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub struct TrackingVecMut<'a, T> {
+pub struct TrackingVecMut<'a, T: 'static> {
     inner: &'a TrackingVec<T>,
 }
 
-impl<'a, T> TrackingVecMut<'a, T> {
+impl<'a, T: 'static> TrackingVecMut<'a, T> {
     pub fn reserve(&self, additional: usize) {
-        self.inner.inner.get_mut_frozen().reserve(additional);
+        self.inner.inner.sample_mut().reserve(additional);
     }
 
     pub fn push(&self, value: T) {
@@ -98,14 +98,14 @@ impl<'a, T> TrackingVecMut<'a, T> {
             .borrow_mut()
             .push(ListMutation::Insert(index));
 
-        self.inner.inner.get_mut_frozen().push(value);
+        self.inner.inner.sample_mut().push(value);
     }
 }
 
-impl<'a, T> Drop for TrackingVecMut<'a, T> {
+impl<'a, T: 'static> Drop for TrackingVecMut<'a, T> {
     fn drop(&mut self) {
         // Flush updates
-        self.inner.inner.get_mut();
+        drop(self.inner.inner.get_mut());
     }
 }
 

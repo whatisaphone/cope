@@ -1,4 +1,4 @@
-use crate::reactive::react;
+use cope::singleton::react;
 use std::cell::Cell;
 use web_sys::Element;
 

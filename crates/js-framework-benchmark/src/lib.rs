@@ -10,8 +10,9 @@ use crate::{
         list::tracked_map,
         misc::toggle_class,
     },
-    reactive::{batch, react, Atom, TrackingVec},
+    reactive::TrackingVec,
 };
+use cope::singleton::{react, Atom};
 use js_sys::Math;
 use std::{
     cell::{Cell, RefCell},
@@ -290,8 +291,6 @@ fn row(item: Rc<Item>, selected_id: Atom<usize>) -> Node {
 }
 
 fn append_rows(state: &State, count: usize) {
-    let _batch = batch();
-
     let data = state.data.batch();
     data.reserve(count);
     for _ in 0..count {

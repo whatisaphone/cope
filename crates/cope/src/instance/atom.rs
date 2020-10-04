@@ -37,6 +37,11 @@ impl<T: 'static> Atom<T> {
         }
     }
 
+    #[must_use]
+    pub fn sample_mut(&self) -> RefMut<'_, T> {
+        self.value.borrow_mut()
+    }
+
     pub fn set(&self, value: T) {
         *self.get_mut() = value;
     }
