@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, sync::Arc};
 
 pub struct Engine {
     current_reaction: RefCell<Option<Reaction>>,
@@ -13,7 +13,7 @@ impl Engine {
         }
     }
 
-    pub(crate) fn track(&self, subscriptions: Rc<RefCell<Vec<Rc<RefCell<Vec<Subscription>>>>>>) {
+    pub(crate) fn track(&self, subscriptions: Arc<RefCell<Vec<Arc<RefCell<Vec<Subscription>>>>>>) {
         let mut reaction = self.current_reaction.borrow_mut();
         let reaction = match reaction.as_mut() {
             Some(reaction) => reaction,
@@ -24,7 +24,7 @@ impl Engine {
             .push(reaction.subscriptions.clone());
     }
 
-    pub fn batch(self: &Rc<Self>) -> Batch {
+    pub fn batch(self: &Arc<Self>) -> Batch {
         let mut current_update = self.current_update.borrow_mut();
         let root = current_update.is_none();
         if !root {
@@ -43,7 +43,7 @@ impl Engine {
         update.updates.push(Box::new(f));
     }
 
-    pub fn react(self: Rc<Self>, f: impl Fn() + 'static) {
+    pub fn react(&self, mut f: impl FnMut() + 'static) {
         let mut current_reaction = self.current_reaction.borrow_mut();
         assert!(current_reaction.is_none());
         *current_reaction = Some(Reaction::new());
@@ -53,7 +53,10 @@ impl Engine {
 
         let mut current_reaction = self.current_reaction.borrow_mut();
         let reaction = current_reaction.take().unwrap();
-        reaction.subscriptions.borrow_mut().push(Rc::new(f));
+        reaction
+            .subscriptions
+            .borrow_mut()
+            .push(Arc::new(RefCell::new(f)));
     }
 }
 
@@ -65,16 +68,16 @@ fn slow_pop_front<T>(xs: &mut Vec<T>) -> Option<T> {
     }
 }
 
-type Subscription = Rc<dyn Fn()>;
+type Subscription = Arc<RefCell<dyn FnMut()>>;
 
 struct Reaction {
-    subscriptions: Rc<RefCell<Vec<Subscription>>>,
+    subscriptions: Arc<RefCell<Vec<Subscription>>>,
 }
 
 impl Reaction {
     pub fn new() -> Self {
         Reaction {
-            subscriptions: Rc::new(RefCell::new(Vec::new())),
+            subscriptions: Arc::new(RefCell::new(Vec::new())),
         }
     }
 }
@@ -92,7 +95,7 @@ impl Update {
 }
 
 pub struct Batch {
-    engine: Option<Rc<Engine>>,
+    engine: Option<Arc<Engine>>,
 }
 
 impl Drop for Batch {
@@ -122,13 +125,13 @@ impl Drop for Batch {
 mod tests {
     use super::*;
     use crate::instance::atom::Atom;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     #[test]
     fn react_simple() {
-        let engine = Rc::new(Engine::new());
+        let engine = Arc::new(Engine::new());
         let atom = Atom::new(engine.clone(), 1);
-        let sink = Rc::new(RefCell::new(Vec::new()));
+        let sink = Arc::new(RefCell::new(Vec::new()));
         engine.react({
             let atom = atom.clone();
             let sink = sink.clone();
@@ -142,7 +145,7 @@ mod tests {
 
     #[test]
     fn commit_changes_after_reaction() {
-        let engine = Rc::new(Engine::new());
+        let engine = Arc::new(Engine::new());
         let atom = Atom::new(engine.clone(), 1);
 
         let batch = engine.batch();

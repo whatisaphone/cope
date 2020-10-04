@@ -1,26 +1,25 @@
 use crate::instance::engine::Engine;
 use std::{
     cell::{Ref, RefCell},
-    rc::Rc,
+    sync::Arc,
 };
 
-type Subscription = Rc<dyn Fn()>;
+type Subscription = Arc<RefCell<dyn FnMut()>>;
 
-#[derive(Clone)]
 pub struct Atom<T> {
-    engine: Rc<Engine>,
-    value: Rc<RefCell<T>>,
-    next: Rc<RefCell<Option<Box<dyn FnOnce(&mut T)>>>>,
-    subscriptions: Rc<RefCell<Vec<Rc<RefCell<Vec<Subscription>>>>>>,
+    engine: Arc<Engine>,
+    value: Arc<RefCell<T>>,
+    next: Arc<RefCell<Option<Box<dyn FnOnce(&mut T)>>>>,
+    subscriptions: Arc<RefCell<Vec<Arc<RefCell<Vec<Subscription>>>>>>,
 }
 
 impl<T: 'static> Atom<T> {
-    pub fn new(engine: Rc<Engine>, initial_value: T) -> Self {
+    pub fn new(engine: Arc<Engine>, initial_value: T) -> Self {
         Self {
             engine,
-            value: Rc::new(RefCell::new(initial_value)),
-            next: Rc::new(RefCell::new(None)),
-            subscriptions: Rc::new(RefCell::new(Vec::new())),
+            value: Arc::new(RefCell::new(initial_value)),
+            next: Arc::new(RefCell::new(None)),
+            subscriptions: Arc::new(RefCell::new(Vec::new())),
         }
     }
 
@@ -47,8 +46,10 @@ impl<T: 'static> Atom<T> {
         drop(batch);
 
         for subscriptions in self.subscriptions.borrow().iter() {
-            for subscription in subscriptions.borrow().iter() {
-                subscription();
+            for subscription in subscriptions.borrow_mut().iter_mut() {
+                let mut func = subscription.borrow_mut();
+                // https://github.com/rust-lang/rust/issues/51886
+                (&mut *func)();
             }
         }
     }
@@ -60,6 +61,17 @@ impl<T: 'static> Atom<T> {
     }
 }
 
+impl<T> Clone for Atom<T> {
+    fn clone(&self) -> Self {
+        Self {
+            engine: self.engine.clone(),
+            value: self.value.clone(),
+            next: self.next.clone(),
+            subscriptions: self.subscriptions.clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -67,14 +79,14 @@ mod tests {
 
     #[test]
     fn get_initial_value() {
-        let engine = Rc::new(Engine::new());
+        let engine = Arc::new(Engine::new());
         let atom = Atom::new(engine, 123);
         assert_eq!(*atom.get(), 123);
     }
 
     #[test]
     fn set() {
-        let engine = Rc::new(Engine::new());
+        let engine = Arc::new(Engine::new());
         let atom = Atom::new(engine, 0);
         atom.set(42);
         assert_eq!(*atom.get(), 42);
@@ -82,7 +94,7 @@ mod tests {
 
     #[test]
     fn mutate() {
-        let engine = Rc::new(Engine::new());
+        let engine = Arc::new(Engine::new());
         let atom = Atom::new(engine, 10);
         atom.mutate(|x| {
             *x += 1;
