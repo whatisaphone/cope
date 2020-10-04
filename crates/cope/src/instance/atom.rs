@@ -5,12 +5,13 @@ use std::{
     sync::Arc,
 };
 
+type SubscriptionList = Vec<Arc<RefCell<Vec<Subscription>>>>;
 type Subscription = Arc<RefCell<dyn FnMut()>>;
 
 pub struct Atom<T> {
     engine: Arc<Engine>,
     value: Arc<RefCell<T>>,
-    subscriptions: Arc<RefCell<Vec<Arc<RefCell<Vec<Subscription>>>>>>,
+    subscriptions: Arc<RefCell<SubscriptionList>>,
 }
 
 impl<T: 'static> Atom<T> {
@@ -22,11 +23,13 @@ impl<T: 'static> Atom<T> {
         }
     }
 
+    #[must_use]
     pub fn get(&self) -> Ref<'_, T> {
-        self.engine.track(self.subscriptions.clone());
+        self.engine.track(&self.subscriptions);
         self.value.borrow()
     }
 
+    #[must_use]
     pub fn get_mut(&self) -> AtomMut<'_, T> {
         AtomMut {
             value: Some(self.value.borrow_mut()),
@@ -49,10 +52,11 @@ impl<T> Clone for Atom<T> {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct AtomMut<'a, T> {
     // Option dance
     value: Option<RefMut<'a, T>>,
-    subscriptions: Arc<RefCell<Vec<Arc<RefCell<Vec<Subscription>>>>>>,
+    subscriptions: Arc<RefCell<SubscriptionList>>,
 }
 
 impl<T> Deref for AtomMut<'_, T> {
@@ -85,8 +89,8 @@ impl<T> Drop for AtomMut<'_, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::instance::engine::Engine;
+    use crate::instance::{Atom, Engine};
+    use std::sync::Arc;
 
     #[test]
     fn get_initial_value() {

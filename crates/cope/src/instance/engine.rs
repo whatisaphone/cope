@@ -1,19 +1,18 @@
 use std::{cell::RefCell, sync::Arc};
 
+#[derive(Default)]
 pub struct Engine {
     current_reaction: RefCell<Option<Reaction>>,
     pub(crate) current_update: RefCell<Option<Update>>,
 }
 
 impl Engine {
+    #[must_use]
     pub fn new() -> Self {
-        Self {
-            current_reaction: RefCell::new(None),
-            current_update: RefCell::new(None),
-        }
+        Self::default()
     }
 
-    pub(crate) fn track(&self, subscriptions: Arc<RefCell<Vec<Arc<RefCell<Vec<Subscription>>>>>>) {
+    pub(crate) fn track(&self, subscriptions: &Arc<RefCell<SubscriptionList>>) {
         let mut reaction = self.current_reaction.borrow_mut();
         let reaction = match reaction.as_mut() {
             Some(reaction) => reaction,
@@ -62,6 +61,7 @@ fn slow_pop_front<T>(xs: &mut Vec<T>) -> Option<T> {
     }
 }
 
+type SubscriptionList = Vec<Arc<RefCell<Vec<Subscription>>>>;
 type Subscription = Arc<RefCell<dyn FnMut()>>;
 
 struct Reaction {
@@ -88,6 +88,7 @@ impl Update {
     }
 }
 
+#[must_use]
 pub struct Batch {
     engine: Option<Arc<Engine>>,
 }
@@ -117,9 +118,8 @@ impl Drop for Batch {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::instance::atom::Atom;
-    use std::sync::Arc;
+    use crate::instance::{Atom, Engine};
+    use std::{cell::RefCell, sync::Arc};
 
     #[test]
     fn react_simple() {

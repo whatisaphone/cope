@@ -20,6 +20,13 @@ repos:
       # Each package is checked separately because of
       # https://github.com/rust-lang/cargo/issues/5364
 
+      - id: check:cope
+        name: check:cope
+        language: system
+        files: '[.]rs$'
+        entry: cargo clippy --manifest-path crates/cope/Cargo.toml --all-targets --features strict
+        pass_filenames: false
+
       - id: check:example-cli-counter
         name: check:example-cli-counter
         language: system
