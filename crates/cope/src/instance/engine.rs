@@ -37,12 +37,6 @@ impl Engine {
         }
     }
 
-    pub(crate) fn enqueue(&self, f: impl FnOnce() + 'static) {
-        let mut update = self.current_update.borrow_mut();
-        let update = update.as_mut().unwrap();
-        update.updates.push(Box::new(f));
-    }
-
     pub fn react(&self, mut f: impl FnMut() + 'static) {
         let mut current_reaction = self.current_reaction.borrow_mut();
         assert!(current_reaction.is_none());
@@ -139,20 +133,8 @@ mod tests {
                 sink.borrow_mut().push(*atom.get());
             }
         });
+        assert_eq!(*sink.borrow(), [1]);
         atom.set(2);
         assert_eq!(*sink.borrow(), [1, 2]);
-    }
-
-    #[test]
-    fn commit_changes_after_reaction() {
-        let engine = Arc::new(Engine::new());
-        let atom = Atom::new(engine.clone(), 1);
-
-        let batch = engine.batch();
-        assert_eq!(*atom.get(), 1);
-        atom.set(2);
-        assert_eq!(*atom.get(), 1);
-        drop(batch);
-        assert_eq!(*atom.get(), 2);
     }
 }
