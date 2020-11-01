@@ -4,6 +4,7 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 pub mod elements;
+mod sealed;
 
 #[cfg(test)]
 mod tests {
