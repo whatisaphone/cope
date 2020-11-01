@@ -40,6 +40,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cope-dom"
+version = "0.0.0"
+
+[[package]]
 name = "cope-example-cli-counter"
 version = "0.0.0"
 dependencies = [

@@ -27,6 +27,13 @@ repos:
         entry: cargo clippy --manifest-path crates/cope/Cargo.toml --all-targets --features strict
         pass_filenames: false
 
+      - id: check:cope-dom
+        name: check:cope-dom
+        language: system
+        files: '[.]rs$'
+        entry: cargo clippy --manifest-path crates/cope-dom/Cargo.toml --all-targets --features strict
+        pass_filenames: false
+
       - id: check:example-cli-counter
         name: check:example-cli-counter
         language: system
