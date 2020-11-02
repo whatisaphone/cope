@@ -5,7 +5,10 @@
 #![cfg_attr(feature = "strict", deny(warnings))]
 
 use crate::{
-    dom::list::{map_children, ElementBuilderChildren},
+    dom::{
+        list::{map_children, ElementBuilderChildren},
+        misc::ElementBuilderClass,
+    },
     reactive::TrackingVec,
 };
 use cope::singleton::Atom;
@@ -158,10 +161,10 @@ fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
         }
     };
 
-    tr().class_name(if *state.selected_id.get() == item.id {
-        "danger"
-    } else {
-        ""
+    tr().class("danger", {
+        let state = state.clone();
+        let item_id = item.id;
+        move || *state.selected_id.get() == item_id
     })
     .child(td().class_name("col-md-1").child(item.id.to_string()))
     .child(
