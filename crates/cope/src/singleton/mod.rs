@@ -60,6 +60,12 @@ impl<T: 'static> Atom<T> {
     }
 }
 
+impl<T: Default + 'static> Default for Atom<T> {
+    fn default() -> Self {
+        Self::new(T::default())
+    }
+}
+
 impl<T> Clone for Atom<T> {
     fn clone(&self) -> Self {
         Self {
