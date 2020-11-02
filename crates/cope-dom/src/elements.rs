@@ -13,6 +13,12 @@ impl<E> ElementBuilder<E> {
     }
 }
 
+impl<E> AsRef<E> for ElementBuilder<E> {
+    fn as_ref(&self) -> &E {
+        &self.element
+    }
+}
+
 impl<E: AsRef<Element>> ElementBuilder<E> {
     pub fn child(self, value: impl ElementChild) -> Self {
         value.append(&self);

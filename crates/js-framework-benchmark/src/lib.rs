@@ -4,15 +4,14 @@
 #![allow(clippy::missing_errors_doc)]
 #![cfg_attr(feature = "strict", deny(warnings))]
 
-use crate::reactive::TrackingVec;
-use cope::singleton::Atom;
-use cope_dom::elements::{a, button, div, h1, span, table, td, tr, ElementBuilder};
-use js_sys::Math;
-use std::{
-    cell::{Cell, RefCell},
-    panic,
-    rc::Rc,
+use crate::{
+    dom::list::{map_children, ElementBuilderChildren},
+    reactive::TrackingVec,
 };
+use cope::singleton::Atom;
+use cope_dom::elements::{a, button, div, h1, span, table, tbody, td, tr, ElementBuilder};
+use js_sys::Math;
+use std::{cell::Cell, panic, rc::Rc};
 use wasm_bindgen::prelude::*;
 use web_sys::{window, Element};
 use wee_alloc::WeeAlloc;
@@ -40,53 +39,55 @@ pub fn __start() {
     #[cfg(debug_assertions)]
     panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let state = Rc::new(RefCell::new(State::default()));
+    let state = Rc::new(State::default());
 
     let document = window().unwrap_throw().document().unwrap_throw();
     let body = document.body().unwrap_throw();
     body.append_with_node_1(&app(&state).build()).unwrap_throw();
 }
 
-fn app(state: &Rc<RefCell<State>>) -> ElementBuilder<Element> {
+fn app(state: &Rc<State>) -> ElementBuilder<Element> {
     div()
         .class_name("container")
         .child(jumbotron(state.clone()))
         .child(
             table()
                 .class_name("table table-hover table-striped test-data")
-                // TODO: .child(tbody().children(map(state.data, |item| row(state, item)))),
+                .child(tbody().children(map_children(state.data.clone(), {
+                    let state = state.clone();
+                    move |item| row(&state, item)
+                }))),
         )
         .child(span().class_name("preloadicon glyphicon glyphicon-remove"))
 }
 
-fn jumbotron(state: Rc<RefCell<State>>) -> ElementBuilder<Element> {
+fn jumbotron(state: Rc<State>) -> ElementBuilder<Element> {
     let run = {
         let state = state.clone();
         move || {
-            state.borrow().data.clear();
-            append_rows(&state.borrow(), 1000);
+            state.data.clear();
+            append_rows(&state, 1000);
         }
     };
 
     let runlots = {
         let state = state.clone();
         move || {
-            state.borrow().data.clear();
-            append_rows(&state.borrow(), 10000);
+            state.data.clear();
+            append_rows(&state, 10000);
         }
     };
 
     let add = {
         let state = state.clone();
         move || {
-            append_rows(&state.borrow(), 1000);
+            append_rows(&state, 1000);
         }
     };
 
     let update = {
         let state = state.clone();
         move || {
-            let state = state.borrow();
             for item in state.data.as_slice().iter().step_by(10) {
                 *item.label.get_mut() += " !!!";
             }
@@ -96,17 +97,13 @@ fn jumbotron(state: Rc<RefCell<State>>) -> ElementBuilder<Element> {
     let clear = {
         let state = state.clone();
         move || {
-            state.borrow().data.clear();
+            state.data.clear();
         }
     };
 
-    let swaprows = {
-        let state = state.clone();
-        move || {
-            let state = state.borrow();
-            if state.data.len() > 998 {
-                state.data.swap(1, 998);
-            }
+    let swaprows = move || {
+        if state.data.len() > 998 {
+            state.data.swap(1, 998);
         }
     };
 
@@ -138,14 +135,10 @@ fn header_button(id: &str, text: &str, on_click: impl Fn() + 'static) -> Element
     )
 }
 
-fn row(
-    state: &Rc<RefCell<State>>,
-    item: Rc<Item>,
-    selected_id: Atom<usize>,
-) -> ElementBuilder<Element> {
+fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
     let handle_select = {
         let item_id = item.id;
-        let selected_id = selected_id.clone();
+        let selected_id = state.selected_id.clone();
         move || {
             selected_id.set(item_id);
         }
@@ -155,7 +148,6 @@ fn row(
         let item_id = item.id;
         let state = state.clone();
         move || {
-            let state = state.borrow();
             let index = state
                 .data
                 .as_slice()
@@ -166,7 +158,7 @@ fn row(
         }
     };
 
-    tr().class_name(if *selected_id.get() == item.id {
+    tr().class_name(if *state.selected_id.get() == item.id {
         "danger"
     } else {
         ""
