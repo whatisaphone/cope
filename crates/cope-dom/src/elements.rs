@@ -1,4 +1,5 @@
 use crate::sealed::Sealed;
+use cope::singleton::{react, Atom};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{window, Element, HtmlButtonElement};
 
@@ -63,13 +64,34 @@ impl<E: AsRef<Element>> ElementChild for ElementBuilder<E> {
     }
 }
 
-impl<T: AsRef<str>> ElementChild for T {
+impl ElementChild for &str {
     fn append<P: AsRef<Element>>(self, parent: &ElementBuilder<P>) {
         parent
             .element
             .as_ref()
-            .append_with_str_1(self.as_ref())
+            .append_with_str_1(self)
             .unwrap_throw();
+    }
+}
+
+impl ElementChild for String {
+    fn append<P: AsRef<Element>>(self, parent: &ElementBuilder<P>) {
+        ElementChild::append(self.as_str(), parent);
+    }
+}
+
+impl ElementChild for &Atom<String> {
+    fn append<P: AsRef<Element>>(self, parent: &ElementBuilder<P>) {
+        let document = window().unwrap_throw().document().unwrap_throw();
+        let node = document.create_text_node("");
+
+        let parent = parent.as_ref().as_ref();
+        parent.append_with_node_1(&node).unwrap_throw();
+
+        let value = self.clone();
+        react(move || {
+            node.set_node_value(Some(&value.get()));
+        });
     }
 }
 
@@ -123,5 +145,11 @@ mod tests {
     fn child_str() {
         let div = div().child("str").build();
         assert_eq!(div.outer_html(), "<div>str</div>");
+    }
+
+    #[wasm_bindgen_test]
+    fn child_string() {
+        let div = div().child("string".to_string()).build();
+        assert_eq!(div.outer_html(), "<div>string</div>");
     }
 }

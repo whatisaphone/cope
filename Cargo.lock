@@ -43,6 +43,7 @@ dependencies = [
 name = "cope-dom"
 version = "0.0.0"
 dependencies = [
+ "cope 0.0.0",
  "wasm-bindgen 0.2.68 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen-test 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.45 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -10,12 +10,15 @@ strict = []
 [dependencies]
 wasm-bindgen = "0.2.68"
 
+cope = { path = "../cope" }
+
 [dependencies.web-sys]
 version = "0.3.45"
 features = [
     "Document",
     "Element",
     "HtmlButtonElement",
+    "Text",
     "Window",
 ]
 

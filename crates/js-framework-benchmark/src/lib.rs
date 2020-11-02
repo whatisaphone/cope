@@ -169,7 +169,7 @@ fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
     .child(td().class_name("col-md-1").child(item.id.to_string()))
     .child(
         td().class_name("col-md-4")
-            .child(a().on_click(handle_select).child(&*item.label.get())),
+            .child(a().on_click(handle_select).child(&item.label)),
     )
     .child(
         td().child(
