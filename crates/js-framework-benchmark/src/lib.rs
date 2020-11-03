@@ -6,6 +6,7 @@
 
 use crate::{
     dom::{
+        delegate::{delegate_event, setup_delegated_events},
         list::{map_children, ElementBuilderChildren},
         misc::toggle_class,
     },
@@ -47,6 +48,8 @@ pub fn __start() {
     let document = window().unwrap_throw().document().unwrap_throw();
     let body = document.body().unwrap_throw();
     body.append_with_node_1(&app(&state).build()).unwrap_throw();
+
+    setup_delegated_events("click");
 }
 
 fn app(state: &Rc<State>) -> ElementBuilder<Element> {
@@ -195,26 +198,12 @@ fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
             label_link.set_text_content(Some(&item.label.get()));
         }
     });
-    label_link
-        .add_event_listener_with_callback(
-            "click",
-            Closure::wrap(Box::new(handle_select) as Box<dyn FnMut()>)
-                .into_js_value()
-                .unchecked_ref(),
-        )
-        .unwrap_throw();
+    delegate_event(&label_link, "click", handle_select);
 
     let remove_cell = label_cell.next_sibling().unwrap_throw();
     let remove_link = remove_cell.first_child().unwrap_throw();
     let remove_span = remove_link.first_child().unwrap_throw();
-    remove_span
-        .add_event_listener_with_callback(
-            "click",
-            Closure::wrap(Box::new(handle_remove) as Box<dyn FnMut()>)
-                .into_js_value()
-                .unchecked_ref(),
-        )
-        .unwrap_throw();
+    delegate_event(&remove_span, "click", handle_remove);
 
     ElementBuilder::new(tr)
 }
