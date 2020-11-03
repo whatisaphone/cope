@@ -14,7 +14,7 @@ use crate::{
 use cope::singleton::Atom;
 use cope_dom::elements::{a, button, div, h1, span, table, tbody, td, tr, ElementBuilder};
 use js_sys::Math;
-use std::{cell::Cell, panic, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 use wasm_bindgen::prelude::*;
 use web_sys::{window, Element};
 use wee_alloc::WeeAlloc;
@@ -40,7 +40,7 @@ struct Item {
 #[wasm_bindgen(start)]
 pub fn __start() {
     #[cfg(debug_assertions)]
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let state = Rc::new(State::default());
 
