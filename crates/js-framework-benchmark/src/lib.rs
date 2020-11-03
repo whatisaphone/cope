@@ -7,15 +7,15 @@
 use crate::{
     dom::{
         list::{map_children, ElementBuilderChildren},
-        misc::ElementBuilderClass,
+        misc::toggle_class,
     },
     reactive::TrackingVec,
 };
-use cope::singleton::Atom;
+use cope::singleton::{react, Atom};
 use cope_dom::elements::{a, button, div, h1, span, table, tbody, td, tr, ElementBuilder};
 use js_sys::Math;
 use std::{cell::Cell, rc::Rc};
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{window, Element};
 use wee_alloc::WeeAlloc;
 
@@ -161,26 +161,62 @@ fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
         }
     };
 
-    tr().class("danger", {
+    thread_local! {
+        static TEMPLATE: Element = tr()
+            .child(td().class_name("col-md-1"))
+            .child(td().class_name("col-md-4").child(a()))
+            .child(
+                td().child(a().child(span().class_name("glyphicon glyphicon-remove")))
+                    .child(td().class_name("col-md-1")),
+            )
+            .build();
+    }
+
+    let tr = TEMPLATE
+        .with(|t| t.clone_node_with_deep(true))
+        .unwrap_throw()
+        .unchecked_into::<Element>();
+
+    toggle_class(tr.clone(), "danger", {
         let state = state.clone();
         let item_id = item.id;
         move || *state.selected_id.get() == item_id
-    })
-    .child(td().class_name("col-md-1").child(item.id.to_string()))
-    .child(
-        td().class_name("col-md-4")
-            .child(a().on_click(handle_select).child(&item.label)),
-    )
-    .child(
-        td().child(
-            a().child(
-                span()
-                    .class_name("glyphicon glyphicon-remove")
-                    .on_click(handle_remove),
-            ),
+    });
+
+    let id_cell = tr.first_child().unwrap_throw();
+    id_cell.set_text_content(Some(&item.id.to_string()));
+
+    let label_cell = id_cell.next_sibling().unwrap_throw();
+    let label_link = label_cell.first_child().unwrap_throw();
+    react({
+        let label_link = label_link.clone();
+        let item = item.clone();
+        move || {
+            label_link.set_text_content(Some(&item.label.get()));
+        }
+    });
+    label_link
+        .add_event_listener_with_callback(
+            "click",
+            Closure::wrap(Box::new(handle_select) as Box<dyn FnMut()>)
+                .into_js_value()
+                .unchecked_ref(),
         )
-        .child(td().class_name("col-md-1")),
-    )
+        .unwrap_throw();
+
+    let remove_cell = label_cell.next_sibling().unwrap_throw();
+    let remove_link = remove_cell.first_child().unwrap_throw();
+    let remove_span = remove_link.first_child().unwrap_throw();
+    remove_span
+        .add_event_listener_with_callback(
+            "click",
+            Closure::wrap(Box::new(handle_remove) as Box<dyn FnMut()>)
+                .into_js_value()
+                .unchecked_ref(),
+        )
+        .unwrap_throw();
+
+    ElementBuilder::new(tr)
 }
 
 fn append_rows(state: &State, count: usize) {

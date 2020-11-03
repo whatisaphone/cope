@@ -9,6 +9,12 @@ pub struct ElementBuilder<E> {
 }
 
 impl<E> ElementBuilder<E> {
+    pub fn new(element: E) -> Self {
+        ElementBuilder { element }
+    }
+}
+
+impl<E> ElementBuilder<E> {
     pub fn build(self) -> E {
         self.element
     }
@@ -107,9 +113,7 @@ macro_rules! define_builder {
         pub fn $name() -> ElementBuilder<::web_sys::$type> {
             let document = window().unwrap_throw().document().unwrap_throw();
             let element = document.create_element(stringify!($name)).unwrap_throw();
-            ElementBuilder {
-                element: element.unchecked_into(),
-            }
+            ElementBuilder::new(element.unchecked_into())
         }
     };
 }
