@@ -1,7 +1,6 @@
 use crate::reactive::{ListMutation, TrackingVec};
 use cope::singleton::react;
 use cope_dom::elements::ElementBuilder;
-use std::convert::TryInto;
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::Element;
 
@@ -44,6 +43,9 @@ where
     fn begin(self, parent: Element) {
         let Self { xs, f } = self;
 
+        // Cache the list of children to avoid the slow call to `NodeList#item`.
+        let mut children: Vec<Element> = Vec::new();
+
         react(move || {
             // Re-run whenever `xs` changes
             xs.get(0);
@@ -54,17 +56,20 @@ where
                 match mutation {
                     ListMutation::Insert(index) => {
                         let item = xs.get(index).unwrap();
-                        let reference = parent.children().item(index.try_into().unwrap());
+                        let node = f(&item).build();
+
+                        let reference = children.get(index);
                         parent
-                            .insert_before(&f(&*item).build(), reference.map(<_>::into).as_ref())
+                            .insert_before(&node, reference.map(<_>::as_ref))
                             .unwrap_throw();
+
+                        children.insert(index, node);
                     }
                     ListMutation::Remove(index) => {
-                        parent
-                            .children()
-                            .item(index.try_into().unwrap())
-                            .unwrap_throw()
-                            .remove();
+                        let node = &children[index];
+                        node.remove();
+
+                        children.remove(index);
                     }
                 }
             }
