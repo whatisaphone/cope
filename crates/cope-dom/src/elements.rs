@@ -1,7 +1,7 @@
 use crate::sealed::Sealed;
 use cope::singleton::{react, Atom};
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{window, Element, HtmlButtonElement};
+use web_sys::{window, Element, Event, EventTarget, HtmlButtonElement};
 
 #[must_use]
 pub struct ElementBuilder<E> {
@@ -98,6 +98,25 @@ impl ElementChild for &Atom<String> {
         react(move || {
             node.set_node_value(Some(&value.get()));
         });
+    }
+}
+
+impl<E: AsRef<EventTarget>> ElementBuilder<E> {
+    pub fn add_event_listener_with_callback(
+        self,
+        type_: &str,
+        listener: impl Fn(Event) + 'static,
+    ) -> Self {
+        self.as_ref()
+            .as_ref()
+            .add_event_listener_with_callback(
+                type_,
+                Closure::wrap(Box::new(listener) as Box<dyn Fn(Event)>)
+                    .into_js_value()
+                    .unchecked_ref(),
+            )
+            .unwrap_throw();
+        self
     }
 }
 

@@ -6,7 +6,6 @@
 
 use crate::{
     dom::{
-        delegate::{delegate_event, setup_delegated_events},
         list::{map_children, ElementBuilderChildren},
         misc::toggle_class,
     },
@@ -17,7 +16,7 @@ use cope_dom::elements::{a, button, div, h1, span, table, tbody, td, tr, Element
 use js_sys::Math;
 use std::{cell::Cell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{window, Element};
+use web_sys::{window, Element, Event};
 use wee_alloc::WeeAlloc;
 
 mod dom;
@@ -48,17 +47,50 @@ pub fn __start() {
     let document = window().unwrap_throw().document().unwrap_throw();
     let body = document.body().unwrap_throw();
     body.append_with_node_1(&app(&state).build()).unwrap_throw();
-
-    setup_delegated_events("click");
 }
 
 fn app(state: &Rc<State>) -> ElementBuilder<Element> {
+    let handle_select = {
+        let selected_id = state.selected_id.clone();
+        move |item_id: usize| {
+            selected_id.set(item_id);
+        }
+    };
+
+    let handle_remove = {
+        let state = state.clone();
+        move |item_id: usize| {
+            let index = state
+                .data
+                .as_slice()
+                .iter()
+                .position(|i| i.id == item_id)
+                .unwrap();
+            state.data.remove(index);
+        }
+    };
+
+    let handle_delegated_click = move |event: Event| {
+        let target = event.target().unwrap_throw();
+        let target: &Element = target.unchecked_ref();
+        let tr = target.closest("tr").unwrap_throw().unwrap_throw();
+        let td = tr.query_selector("td").unwrap_throw().unwrap_throw();
+        let item_id = td.text_content().unwrap_throw().parse().unwrap();
+
+        if target.node_name() == "A" {
+            handle_select(item_id);
+        } else if target.node_name() == "SPAN" {
+            handle_remove(item_id);
+        }
+    };
+
     div()
         .class_name("container")
         .child(jumbotron(state.clone()))
         .child(
             table()
                 .class_name("table table-hover table-striped test-data")
+                .add_event_listener_with_callback("click", handle_delegated_click)
                 .child(tbody().children(map_children(state.data.clone(), {
                     let state = state.clone();
                     move |item| row(&state, item)
@@ -142,28 +174,6 @@ fn header_button(id: &str, text: &str, on_click: impl Fn() + 'static) -> Element
 }
 
 fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
-    let handle_select = {
-        let item_id = item.id;
-        let selected_id = state.selected_id.clone();
-        move || {
-            selected_id.set(item_id);
-        }
-    };
-
-    let handle_remove = {
-        let item_id = item.id;
-        let state = state.clone();
-        move || {
-            let index = state
-                .data
-                .as_slice()
-                .iter()
-                .position(|i| i.id == item_id)
-                .unwrap();
-            state.data.remove(index);
-        }
-    };
-
     thread_local! {
         static TEMPLATE: Element = tr()
             .child(td().class_name("col-md-1"))
@@ -192,18 +202,11 @@ fn row(state: &Rc<State>, item: &Rc<Item>) -> ElementBuilder<Element> {
     let label_cell = id_cell.next_sibling().unwrap_throw();
     let label_link = label_cell.first_child().unwrap_throw();
     react({
-        let label_link = label_link.clone();
         let item = item.clone();
         move || {
             label_link.set_text_content(Some(&item.label.get()));
         }
     });
-    delegate_event(&label_link, "click", handle_select);
-
-    let remove_cell = label_cell.next_sibling().unwrap_throw();
-    let remove_link = remove_cell.first_child().unwrap_throw();
-    let remove_span = remove_link.first_child().unwrap_throw();
-    delegate_event(&remove_span, "click", handle_remove);
 
     ElementBuilder::new(tr)
 }
