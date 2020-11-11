@@ -1,8 +1,10 @@
 [package]
 name = "cope-dom"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["John Simon <john@whatisaph.one>"]
 edition = "2018"
+description = "wip"
+license = "AGPL-3.0-only"
 
 [features]
 strict = []
@@ -10,7 +12,7 @@ strict = []
 [dependencies]
 wasm-bindgen = "0.2.68"
 
-cope = { path = "../cope" }
+cope = { version = "0.0.1", path = "../cope" }
 
 [dependencies.web-sys]
 version = "0.3.45"

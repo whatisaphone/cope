@@ -1,8 +1,10 @@
 [package]
 name = "cope"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["John Simon <john@whatisaph.one>"]
 edition = "2018"
+description = "wip"
+license = "AGPL-3.0-only"
 
 [features]
 strict = []

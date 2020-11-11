@@ -34,16 +34,16 @@ dependencies = [
 
 [[package]]
 name = "cope"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "scopeguard 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cope-dom"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
- "cope 0.0.0",
+ "cope 0.0.1",
  "wasm-bindgen 0.2.68 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen-test 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.45 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -86,8 +86,8 @@ name = "cope-js-framework-benchmark"
 version = "0.0.0"
 dependencies = [
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "cope 0.0.0",
- "cope-dom 0.0.0",
+ "cope 0.0.1",
+ "cope-dom 0.0.1",
  "js-sys 0.3.45 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.68 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen-test 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
